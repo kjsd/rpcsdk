@@ -1,5 +1,6 @@
 defmodule Rpcsdk.RequestBroker do
   @callback get_key(id :: term) :: key :: term
+  @callback initialize() :: state :: term
 
   defmacro __using__(opts) do
     supervisor = Keyword.get(opts, :supervisor)
@@ -10,10 +11,15 @@ defmodule Rpcsdk.RequestBroker do
       use GenServer
       @behaviour unquote(__MODULE__)
 
+      def initialize(), do: unquote(initial_state)
+      
+      defoverridable initialize: 0
+
       # Helper APIs
       def start_link(args) do
+        state = initialize()
         opts = args |> Keyword.take([:name])
-        GenServer.start_link(__MODULE__, unquote(initial_state), opts)
+        GenServer.start_link(__MODULE__, state, opts)
       end
 
       @impl GenServer

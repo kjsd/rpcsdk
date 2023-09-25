@@ -5,6 +5,7 @@ defmodule Rpcsdk.Crawler do
   @callback handle_crawled(results :: [term], key :: term,
     state :: {interval :: integer, args :: term})
   :: next_state :: {next_interval :: integer, args :: term}
+  @callback initialize() :: state :: term
 
   defmacro __using__(opts) do
     queue = Keyword.get(opts, :queue)
@@ -18,13 +19,20 @@ defmodule Rpcsdk.Crawler do
       use GenServer
       @behaviour unquote(__MODULE__)
 
+      def initialize(), do: unquote(initial_args)
+      def handle_crawled(_, _, state), do: state
+      
+      defoverridable initialize: 0
+      defoverridable handle_crawled: 3
+
       # Helper APIs
       def start_link(args) do
+        state = initialize()
         opts = args |> Keyword.take([:name])
         key = Keyword.get(args, :key)
 
         GenServer.start_link(__MODULE__, [
-              key: key, state: {unquote(interval_ms), unquote(initial_args)}], opts)
+              key: key, state: {unquote(interval_ms), state}], opts)
       end
 
       # GenServer callbacks
@@ -48,10 +56,6 @@ defmodule Rpcsdk.Crawler do
 
         results =
           case {unquote(sync), unquote(wait)} do
-            {false, false} ->
-              items
-              |> Enum.map(&(spawn(fn -> handle_crawling(&1, key, state) end)))
-
             {true, _} ->
               items
               |> Enum.map(fn x ->
@@ -59,12 +63,16 @@ defmodule Rpcsdk.Crawler do
                 |> Task.await(:infinity)
               end)
 
-            {false, _} ->
+            {false, true} ->
               items
               |> Task.async_stream(__MODULE__, :handle_crawling, [
                     key, state], ordered: false, timeout: :infinity)
               |> Enum.filter(&(match?({:ok, x}, &1)))
               |> Enum.map(fn {:ok, x} -> x end)
+              
+            _ ->
+              items
+              |> Enum.map(&(spawn(fn -> handle_crawling(&1, key, state) end)))
           end
 
         {next_interval, _} = next_state = handle_crawled(results, key, state)
