@@ -73,7 +73,7 @@ defmodule Rpcsdk.Queue do
 
       def crawl(key) do
         crawler_process(key)
-        |> Process.send(:crawl)
+        |> send(:crawl)
       end
       
       # GenServer callbacks
