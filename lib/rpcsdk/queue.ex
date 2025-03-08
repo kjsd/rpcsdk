@@ -71,6 +71,11 @@ defmodule Rpcsdk.Queue do
         end
       end
 
+      def crawl(key) do
+        crawler_process(key)
+        |> Process.send(:crawl)
+      end
+      
       # GenServer callbacks
       @impl GenServer
       def init(state \\ []), do: {:ok, state}
