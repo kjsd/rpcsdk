@@ -72,8 +72,9 @@ defmodule Rpcsdk.Queue do
       end
 
       def crawl(key) do
-        crawler_process(key)
-        |> send(:crawl)
+        with [{pid, _}] <- Registry.lookup(unquote(registry), crawler_name(key)) do
+          send(pid, :crawl)
+        end
       end
       
       # GenServer callbacks
