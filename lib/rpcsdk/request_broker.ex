@@ -71,7 +71,8 @@ defmodule Rpcsdk.RequestBroker do
       end
 
       defp cast_stub(name, id, args \\ []) do
-        request = Enum.reduce(args, {name, id}, &(Tuple.append(&2, &1)))
+        request = Enum.reduce(args, {name, id},
+          &(Tuple.insert_at(&2, tuple_size(&2), &1)))
 
         try do
           id
