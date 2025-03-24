@@ -56,7 +56,8 @@ defmodule Rpcsdk.RequestBroker do
       end
 
       defp call_stub(name, id, args \\ [], timeout \\ 5000) do
-        request = Enum.reduce(args, {name, id}, &(Tuple.append(&2, &1)))
+        request = Enum.reduce(args, {name, id},
+          &(Tuple.insert_at(&2, tuple_size(&2), &1)))
 
         try do
           id
