@@ -12,6 +12,7 @@ defmodule Rpcsdk.RequestBroker do
       @behaviour unquote(__MODULE__)
 
       def initialize(), do: unquote(initial_state)
+      def join(id), do: call_stub(:join, id, [], :infinity)
       
       defoverridable initialize: 0
 
@@ -24,6 +25,9 @@ defmodule Rpcsdk.RequestBroker do
 
       @impl GenServer
       def init(state), do: {:ok, state}
+
+      @impl GenServer
+      def handle_call({:join, _}, _, s), do: {:reply, :ok, s}
 
       def get_child(nil), do: nil
       def get_child(key) do
