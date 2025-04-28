@@ -65,8 +65,8 @@ defmodule Rpcsdk.RequestBroker do
           |> get_child()
           |> GenServer.call(request, timeout)
         catch
-          :exit, _ ->
-            {:error, :not_found}
+          :exit, e ->
+            {:error, e}
         end
       end
 
@@ -80,8 +80,8 @@ defmodule Rpcsdk.RequestBroker do
           |> get_child()
           |> GenServer.cast(request)
         catch
-          :exit, _ ->
-            {:error, :not_found}
+          :exit, e ->
+            {:error, e}
         end
       end
 
