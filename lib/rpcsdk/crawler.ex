@@ -38,6 +38,7 @@ defmodule Rpcsdk.Crawler do
       # GenServer callbacks
       @impl GenServer
       def init([key: _, state: {interval, _}] = args) do
+        Process.flag(:trap_exit, true)
         schedule(interval)
         {:ok, args}
       end

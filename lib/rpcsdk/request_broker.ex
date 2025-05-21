@@ -26,7 +26,10 @@ defmodule Rpcsdk.RequestBroker do
       end
 
       @impl GenServer
-      def init(state), do: {:ok, state}
+      def init(state) do
+        Process.flag(:trap_exit, true)
+        {:ok, state}
+      end
 
       @impl GenServer
       def handle_call({:join, _}, _, s), do: {:reply, :ok, s}
