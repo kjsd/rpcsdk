@@ -3,6 +3,8 @@ defmodule Rpcsdk.RequestBroker do
   @callback initialize() :: state :: term
 
   defmacro __using__(opts) do
+    supervisor_m = Keyword.get(opts, :supervisor_m, DynamicSupervisor)
+    registry_m = Keyword.get(opts, :registry, Registry)
     supervisor = Keyword.get(opts, :supervisor)
     registry = Keyword.get(opts, :registry)
     initial_state = Keyword.get(opts, :initial_state, [])
@@ -31,14 +33,14 @@ defmodule Rpcsdk.RequestBroker do
 
       def get_child(nil), do: nil
       def get_child(key) do
-        case Registry.lookup(unquote(registry), name(key)) do
+        case unquote(registry_m).lookup(unquote(registry), name(key)) do
           [{pid, _}] ->
             pid
 
           _ ->
             spec = __MODULE__.child_spec([name: process(key)])
 
-            DynamicSupervisor.start_child(unquote(supervisor), spec)
+            unquote(supervisor_m).start_child(unquote(supervisor), spec)
             |> case do
                  {:ok, x} ->
                    x
@@ -50,8 +52,8 @@ defmodule Rpcsdk.RequestBroker do
       end
 
       def terminate_child(key) do
-        with [{pid, _}] <- Registry.lookup(unquote(registry), name(key)) do
-          DynamicSupervisor.terminate_child(unquote(supervisor), pid)
+        with [{pid, _}] <- unquote(registry_m).lookup(unquote(registry), name(key)) do
+          unquote(supervisor_m).terminate_child(unquote(supervisor), pid)
         end
       end
 
@@ -85,7 +87,7 @@ defmodule Rpcsdk.RequestBroker do
         end
       end
 
-      defp process(key), do: {:via, Registry, {unquote(registry), name(key)}}
+      defp process(key), do: {:via, unquote(registry_m), {unquote(registry), name(key)}}
       defp name(key), do: "request_broker_#{key}"
     end
   end

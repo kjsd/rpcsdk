@@ -1,5 +1,7 @@
 defmodule Rpcsdk.Queue do
   defmacro __using__(opts) do
+    supervisor_m = Keyword.get(opts, :supervisor_m, DynamicSupervisor)
+    registry_m = Keyword.get(opts, :registry, Registry)
     supervisor = Keyword.get(opts, :supervisor)
     registry = Keyword.get(opts, :registry)
     crawler = Keyword.get(opts, :crawler)
@@ -15,7 +17,7 @@ defmodule Rpcsdk.Queue do
 
       def enqueue(nil, value), do: :ok
       def enqueue(key, value) do
-        case Registry.lookup(unquote(registry), queue_name(key)) do
+        case unquote(registry_m).lookup(unquote(registry), queue_name(key)) do
           [{pid, _}] ->
             pid
 
@@ -23,7 +25,7 @@ defmodule Rpcsdk.Queue do
             queue_spec = [name: queue_process(key)]
             |> __MODULE__.child_spec()
 
-            pid = DynamicSupervisor.start_child(unquote(supervisor), queue_spec)
+            pid = unquote(supervisor_m).start_child(unquote(supervisor), queue_spec)
             |> case do
                  {:ok, x} ->
                    x
@@ -35,7 +37,7 @@ defmodule Rpcsdk.Queue do
             crawler_spec = [name: crawler_process(key), key: key]
             |> unquote(crawler).child_spec()
 
-            DynamicSupervisor.start_child(unquote(supervisor), crawler_spec)
+            unquote(supervisor_m).start_child(unquote(supervisor), crawler_spec)
 
             pid
         end
@@ -62,17 +64,20 @@ defmodule Rpcsdk.Queue do
       end
 
       def terminate(key) do
-        with [{pid, _}] <- Registry.lookup(unquote(registry), crawler_name(key)) do
-          DynamicSupervisor.terminate_child(unquote(supervisor), pid)
+        with [{pid, _}] <- unquote(registry_m).lookup(unquote(registry),
+                  crawler_name(key)) do
+          unquote(supervisor_m).terminate_child(unquote(supervisor), pid)
         end
 
-        with [{pid, _}] <- Registry.lookup(unquote(registry), queue_name(key)) do
-          DynamicSupervisor.terminate_child(unquote(supervisor), pid)
+        with [{pid, _}] <- unquote(registry_m).lookup(unquote(registry),
+                  queue_name(key)) do
+          unquote(supervisor_m).terminate_child(unquote(supervisor), pid)
         end
       end
 
       def crawl(key) do
-        with [{pid, _}] <- Registry.lookup(unquote(registry), crawler_name(key)) do
+        with [{pid, _}] <- unquote(registry_m).lookup(unquote(registry),
+                  crawler_name(key)) do
           send(pid, :crawl)
         end
       end
@@ -92,9 +97,9 @@ defmodule Rpcsdk.Queue do
       def handle_call(:queue, _, state), do: {:reply, state, state}
 
       defp queue_process(key),
-        do: {:via, Registry, {unquote(registry), queue_name(key)}}
+        do: {:via, unquote(registry_m), {unquote(registry), queue_name(key)}}
       defp crawler_process(key),
-        do: {:via, Registry, {unquote(registry), crawler_name(key)}}
+        do: {:via, unquote(registry_m), {unquote(registry), crawler_name(key)}}
 
       defp queue_name(key), do: "rpcsdk_queue_#{key}"
       defp crawler_name(key), do: "rpcsdk_crawler_#{key}"
