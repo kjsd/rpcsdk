@@ -10,7 +10,7 @@ defmodule Rpcsdk.MixProject do
   def project do
     [
       app: :rpcsdk,
-      version: "0.4.5",
+      version: "0.4.6",
       elixir: "~> 1.14",
       description: @description,
       package: package(),

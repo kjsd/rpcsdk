@@ -4,7 +4,7 @@ defmodule Rpcsdk.RequestBroker do
 
   defmacro __using__(opts) do
     supervisor_m = Keyword.get(opts, :supervisor_m, DynamicSupervisor)
-    registry_m = Keyword.get(opts, :registry, Registry)
+    registry_m = Keyword.get(opts, :registry_m, Registry)
     supervisor = Keyword.get(opts, :supervisor)
     registry = Keyword.get(opts, :registry)
     initial_state = Keyword.get(opts, :initial_state, [])

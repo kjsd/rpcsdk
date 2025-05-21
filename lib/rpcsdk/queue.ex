@@ -1,7 +1,7 @@
 defmodule Rpcsdk.Queue do
   defmacro __using__(opts) do
     supervisor_m = Keyword.get(opts, :supervisor_m, DynamicSupervisor)
-    registry_m = Keyword.get(opts, :registry, Registry)
+    registry_m = Keyword.get(opts, :registry_m, Registry)
     supervisor = Keyword.get(opts, :supervisor)
     registry = Keyword.get(opts, :registry)
     crawler = Keyword.get(opts, :crawler)
