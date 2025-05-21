@@ -90,6 +90,7 @@ defmodule Rpcsdk.RequestBroker do
         end
       end
 
+      defp state(id, s), do: [key: id, state: s]
       defp process(key), do: {:via, unquote(registry_m), {unquote(registry), name(key)}}
       defp name(key), do: "request_broker_#{key}"
     end
