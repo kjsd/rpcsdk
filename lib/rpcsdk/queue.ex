@@ -19,29 +19,35 @@ defmodule Rpcsdk.Queue do
       def enqueue(key, value) do
         case unquote(registry_m).lookup(unquote(registry), queue_name(key)) do
           [{pid, _}] ->
-            pid
+            {:ok, pid}
 
           _ ->
             queue_spec = [name: queue_process(key)]
             |> __MODULE__.child_spec()
 
-            pid = unquote(supervisor_m).start_child(unquote(supervisor), queue_spec)
+            unquote(supervisor_m).start_child(unquote(supervisor), queue_spec)
             |> case do
-                 {:ok, x} ->
+                 {:ok, _} = x ->
                    x
 
                  {:error, {:already_started, x}} ->
-                   x
+                   {:ok, x}
                end
+               |> case do
+                    {:ok, _} = x ->
+                      crawler_spec = [name: crawler_process(key), key: key]
+                      |> unquote(crawler).child_spec()
 
-            crawler_spec = [name: crawler_process(key), key: key]
-            |> unquote(crawler).child_spec()
-
-            unquote(supervisor_m).start_child(unquote(supervisor), crawler_spec)
-
-            pid
+                      unquote(supervisor_m).start_child(unquote(supervisor), crawler_spec)
+                      x
+                  end
         end
-        |> GenServer.cast({:enqueue, value})
+        |> case do
+             {:ok, pid} ->
+               pid |> GenServer.cast({:enqueue, value})
+             e ->
+               e
+           end
       end
 
       def dequeue(key) do

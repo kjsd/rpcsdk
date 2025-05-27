@@ -38,18 +38,20 @@ defmodule Rpcsdk.RequestBroker do
       def get_child(key) do
         case unquote(registry_m).lookup(unquote(registry), name(key)) do
           [{pid, _}] ->
-            pid
+            {:ok, pid}
 
           _ ->
             spec = __MODULE__.child_spec([name: process(key)])
 
             unquote(supervisor_m).start_child(unquote(supervisor), spec)
             |> case do
-                 {:ok, x} ->
+                 {:ok, _} = x -> 
                    x
 
-                 {:error, {:already_started, x}} ->
-                   x
+                 {:error, {:already_started, pid}} ->
+                   {:ok, pid}
+                 e ->
+                   e
                end
         end
       end
@@ -68,7 +70,12 @@ defmodule Rpcsdk.RequestBroker do
           id
           |> get_key()
           |> get_child()
-          |> GenServer.call(request, timeout)
+          |> case do
+               {:ok, pid} ->
+                 pid |> GenServer.call(request, timeout)
+               e ->
+                 e
+             end
         catch
           :exit, e ->
             {:error, e}
@@ -83,7 +90,12 @@ defmodule Rpcsdk.RequestBroker do
           id
           |> get_key()
           |> get_child()
-          |> GenServer.cast(request)
+          |> case do
+               {:ok, pid} ->
+                 pid |> GenServer.cast(request)
+               e ->
+                 e
+             end
         catch
           :exit, e ->
             {:error, e}
