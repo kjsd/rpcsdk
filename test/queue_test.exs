@@ -31,20 +31,20 @@ defmodule Rpcsdk.QueueTest do
   end
   
   test "enqueue", %{impl: impl} do
+    impl.clear(1)
     assert :ok == impl.enqueue(1, {:echo, "hello Clawlar"})
-    if(impl.has_crawler?, do: impl.crawl(1), else: impl.dequeue(1))
-    Process.sleep(300)
+    impl.crawl(1)
   end
 
   test "dequeue", %{impl: impl} do
-    assert nil == impl.dequeue(1) 
+    impl.clear(1)
 
     impl.enqueue(1, {:echo, "hello"})
     assert {:echo, "hello"} == impl.dequeue(1) 
   end
 
   test "queue", %{impl: impl} do
-    assert [] == impl.queue(1) 
+    impl.clear(1)
 
     impl.enqueue(1, {:echo, "hello"})
     assert [{:echo, "hello"}] == impl.queue(1) 

@@ -1,10 +1,12 @@
 defmodule Rpcsdk.Queue do
+  def child_spec(_), do: nil
+
   defmacro __using__(opts) do
     supervisor_m = Keyword.get(opts, :supervisor_m, DynamicSupervisor)
     registry_m = Keyword.get(opts, :registry_m, Registry)
     supervisor = Keyword.get(opts, :supervisor)
     registry = Keyword.get(opts, :registry)
-    crawler = Keyword.get(opts, :crawler)
+    crawler = Keyword.get(opts, :crawler, __MODULE__)
 
     quote do
       use GenServer
@@ -61,6 +63,14 @@ defmodule Rpcsdk.Queue do
         end
       end
           
+      def clear(key) do
+        try do
+          queue_process(key)
+          |> GenServer.cast(:clear)
+        catch
+          :exit, _ -> nil
+        end
+      end
 
       def queue(key) do
         try do
@@ -92,9 +102,7 @@ defmodule Rpcsdk.Queue do
         end
       end
       
-      def has_crawler?() do
-        is_atom(unquote(crawler)) && function_exported?(unquote(crawler), :child_spec, 1)
-      end
+      def has_crawler?(), do: unquote(crawler).child_spec([]) != nil
         
       # GenServer callbacks
       @impl GenServer
@@ -106,6 +114,9 @@ defmodule Rpcsdk.Queue do
       @impl GenServer
       def handle_call(:dequeue, _, [value | state]), do: {:reply, value, state}
       def handle_call(:dequeue, _, []), do: {:reply, nil, []}
+
+      @impl GenServer
+      def handle_cast(:clear, state), do: {:noreply, []}
 
       @impl GenServer
       def handle_call(:queue, _, state), do: {:reply, state, state}
