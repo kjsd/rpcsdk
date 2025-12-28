@@ -35,10 +35,12 @@ defmodule Rpcsdk.Queue do
                end
                |> case do
                     {:ok, _} = x ->
-                      crawler_spec = [name: crawler_process(key), key: key]
-                      |> unquote(crawler).child_spec()
+                      if has_crawler?() do
+                        crawler_spec = [name: crawler_process(key), key: key]
+                        |> unquote(crawler).child_spec()
 
-                      unquote(supervisor_m).start_child(unquote(supervisor), crawler_spec)
+                        unquote(supervisor_m).start_child(unquote(supervisor), crawler_spec)
+                      end
                       x
                   end
         end
@@ -70,8 +72,9 @@ defmodule Rpcsdk.Queue do
       end
 
       def terminate(key) do
-        with [{pid, _}] <- unquote(registry_m).lookup(unquote(registry),
-                  crawler_name(key)) do
+        with true <- has_crawler?(),
+             [{pid, _}] <- unquote(registry_m).lookup(unquote(registry),
+               crawler_name(key)) do
           unquote(supervisor_m).terminate_child(unquote(supervisor), pid)
         end
 
@@ -82,12 +85,17 @@ defmodule Rpcsdk.Queue do
       end
 
       def crawl(key) do
-        with [{pid, _}] <- unquote(registry_m).lookup(unquote(registry),
+        with true <- has_crawler?(),
+             [{pid, _}] <- unquote(registry_m).lookup(unquote(registry),
                   crawler_name(key)) do
           send(pid, :crawl)
         end
       end
       
+      def has_crawler?() do
+        is_atom(unquote(crawler)) && function_exported?(unquote(crawler), :child_spec, 1)
+      end
+        
       # GenServer callbacks
       @impl GenServer
       def init(state \\ []), do: {:ok, state}
@@ -109,6 +117,7 @@ defmodule Rpcsdk.Queue do
 
       defp queue_name(key), do: "rpcsdk_queue_#{key}"
       defp crawler_name(key), do: "rpcsdk_crawler_#{key}"
+
     end
   end
 end

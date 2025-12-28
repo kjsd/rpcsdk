@@ -32,7 +32,7 @@ defmodule Rpcsdk.QueueTest do
   
   test "enqueue", %{impl: impl} do
     assert :ok == impl.enqueue(1, {:echo, "hello Clawlar"})
-    impl.crawl(1)
+    if(impl.has_crawler?, do: impl.crawl(1), else: impl.dequeue(1))
     Process.sleep(300)
   end
 
